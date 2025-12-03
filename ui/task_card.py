@@ -3,10 +3,10 @@ Task card widget for displaying individual tasks.
 """
 
 from PyQt6.QtWidgets import (
-    QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QMenu
+    QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QMenu, QApplication
 )
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QFont, QAction
+from PyQt6.QtCore import Qt, pyqtSignal, QMimeData, QPoint
+from PyQt6.QtGui import QFont, QAction, QDrag
 
 
 class TaskCard(QFrame):
@@ -170,8 +170,40 @@ class TaskCard(QFrame):
     def mousePressEvent(self, event):
         """Handle mouse press for drag start."""
         if event.button() == Qt.MouseButton.LeftButton:
-            self.task_clicked.emit(self.task)
+            self._drag_start_position = event.pos()
         super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        """Handle mouse move for drag operation."""
+        if not (event.buttons() & Qt.MouseButton.LeftButton):
+            return
+
+        if not hasattr(self, '_drag_start_position'):
+            return
+
+        # Check if drag distance threshold is met
+        distance = (event.pos() - self._drag_start_position).manhattanLength()
+        if distance < QApplication.startDragDistance():
+            return
+
+        # Create drag object
+        drag = QDrag(self)
+        mime_data = QMimeData()
+        mime_data.setText(str(self.task["id"]))
+        drag.setMimeData(mime_data)
+
+        # Execute drag
+        drag.exec(Qt.DropAction.MoveAction)
+
+    def mouseReleaseEvent(self, event):
+        """Handle mouse release - emit click if no drag occurred."""
+        if event.button() == Qt.MouseButton.LeftButton:
+            if hasattr(self, '_drag_start_position'):
+                distance = (event.pos() - self._drag_start_position).manhattanLength()
+                if distance < QApplication.startDragDistance():
+                    self.task_clicked.emit(self.task)
+                del self._drag_start_position
+        super().mouseReleaseEvent(event)
 
     def get_task_id(self) -> int:
         """Get the task ID."""

@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import (
     QFrame, QGraphicsView, QGraphicsScene, QGraphicsRectItem,
     QGraphicsTextItem
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QRectF
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont, QColor, QBrush, QPen
 
 
@@ -136,9 +136,11 @@ class TimelineView(QWidget):
                 due_date = datetime.strptime(task["due_date"], "%Y-%m-%d")
                 days_from_start = (due_date - min_date).days
 
-                # Assume task duration of 3 days for visualization
-                bar_x = left_margin + (days_from_start - 3) * day_width
-                bar_width = 4 * day_width
+                # Default task duration for visualization (can be extended with start_date field)
+                # Currently uses 3 days before due date as estimated start
+                default_duration_days = 3
+                bar_x = left_margin + (days_from_start - default_duration_days) * day_width
+                bar_width = (default_duration_days + 1) * day_width
 
                 status = task.get("status", "やること")
                 color = self.STATUS_COLORS.get(status, "#6B7280")
